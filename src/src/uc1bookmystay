@@ -1,123 +1,98 @@
 import java.util.*;
 
-// Domain Model: Room
-class Room {
+// Reservation (Represents booking intent)
+class Reservation {
+    private String guestName;
     private String roomType;
-    private double price;
-    private List<String> amenities;
 
-    public Room(String roomType, double price, List<String> amenities) {
+    public Reservation(String guestName, String roomType) {
+        this.guestName = guestName;
         this.roomType = roomType;
-        this.price = price;
-        this.amenities = amenities;
+    }
+
+    public String getGuestName() {
+        return guestName;
     }
 
     public String getRoomType() {
         return roomType;
     }
 
-    public double getPrice() {
-        return price;
-    }
-
-    public List<String> getAmenities() {
-        return amenities;
-    }
-
-    public void displayDetails() {
-        System.out.println("Room Type: " + roomType);
-        System.out.println("Price: ₹" + price);
-        System.out.println("Amenities: " + amenities);
-        System.out.println("---------------------------");
+    public void display() {
+        System.out.println("Guest: " + guestName + " | Requested Room: " + roomType);
     }
 }
 
-// Inventory (State Holder)
-class Inventory {
-    private Map<String, Integer> availability = new HashMap<>();
+// Booking Request Queue (FIFO structure)
+class BookingRequestQueue {
+    private Queue<Reservation> queue;
 
-    public void addRoom(String roomType, int count) {
-        availability.put(roomType, count);
+    public BookingRequestQueue() {
+        queue = new LinkedList<>();
     }
 
-    // Read-only access
-    public int getAvailableCount(String roomType) {
-        return availability.getOrDefault(roomType, 0);
-    }
-
-    public Set<String> getAllRoomTypes() {
-        return availability.keySet();
-    }
-}
-
-// Search Service (Read-only logic)
-class SearchService {
-    private Inventory inventory;
-    private Map<String, Room> roomCatalog;
-
-    public SearchService(Inventory inventory, Map<String, Room> roomCatalog) {
-        this.inventory = inventory;
-        this.roomCatalog = roomCatalog;
-    }
-
-    public void searchAvailableRooms() {
-        System.out.println("Available Rooms:\n");
-
-        for (String roomType : inventory.getAllRoomTypes()) {
-
-            int availableCount = inventory.getAvailableCount(roomType);
-
-            // Defensive check: only show available rooms
-            if (availableCount > 0) {
-                Room room = roomCatalog.get(roomType);
-
-                if (room != null) { // defensive programming
-                    room.displayDetails();
-                    System.out.println("Available Units: " + availableCount);
-                    System.out.println("===========================");
-                }
-            }
+    // Add request to queue (enqueue)
+    public void addRequest(Reservation reservation) {
+        if (reservation != null) { // Defensive programming
+            queue.offer(reservation);
+            System.out.println("Request added for " + reservation.getGuestName());
         }
+    }
+
+    // View all queued requests (read-only)
+    public void viewRequests() {
+        if (queue.isEmpty()) {
+            System.out.println("No booking requests in queue.");
+            return;
+        }
+
+        System.out.println("\nBooking Requests (FIFO Order):");
+        System.out.println("--------------------------------");
+
+        for (Reservation r : queue) {
+            r.display();
+        }
+    }
+
+    // Get next request (for future allocation stage)
+    public Reservation getNextRequest() {
+        return queue.peek(); // No removal (read-only stage)
     }
 }
 
 // Main Class
-public class UseCase4RoomSearch {
+public class UseCase5BookingRequestQueue {
     public static void main(String[] args) {
 
-        // Step 1: Create Inventory
-        Inventory inventory = new Inventory();
-        inventory.addRoom("Single", 5);
-        inventory.addRoom("Double", 0); // unavailable
-        inventory.addRoom("Suite", 2);
+        // Step 1: Create Booking Queue
+        BookingRequestQueue bookingQueue = new BookingRequestQueue();
 
-        // Step 2: Create Room Catalog (Domain Model)
-        Map<String, Room> roomCatalog = new HashMap<>();
+        // Step 2: Simulate Guest Requests (arrival order matters)
+        Reservation r1 = new Reservation("Alice", "Single");
+        Reservation r2 = new Reservation("Bob", "Suite");
+        Reservation r3 = new Reservation("Charlie", "Single");
+        Reservation r4 = new Reservation("Diana", "Double");
 
-        roomCatalog.put("Single", new Room(
-                "Single",
-                2000,
-                Arrays.asList("WiFi", "TV", "AC")
-        ));
+        // Step 3: Add requests to queue (FIFO)
+        bookingQueue.addRequest(r1);
+        bookingQueue.addRequest(r2);
+        bookingQueue.addRequest(r3);
+        bookingQueue.addRequest(r4);
 
-        roomCatalog.put("Double", new Room(
-                "Double",
-                3500,
-                Arrays.asList("WiFi", "TV", "AC", "Mini Bar")
-        ));
+        // Step 4: Display queued requests
+        bookingQueue.viewRequests();
 
-        roomCatalog.put("Suite", new Room(
-                "Suite",
-                6000,
-                Arrays.asList("WiFi", "TV", "AC", "Mini Bar", "Jacuzzi")
-        ));
+        // Step 5: Peek next request (without removing)
+        System.out.println("\nNext request to be processed:");
+        Reservation next = bookingQueue.getNextRequest();
 
-        // Step 3: Search Service (Read-only)
-        SearchService searchService = new SearchService(inventory, roomCatalog);
+        if (next != null) {
+            next.display();
+        }
 
-        // Step 4: Guest initiates search
-        searchService.searchAvailableRooms();
-
-        // NOTE: Inventory is NOT modified anywhere (read-only behavior)
+        // NOTE:
+        // - No inventory updates happen here
+        // - No booking confirmation is done
+        // - Only request intake and ordering is handled
     }
 }
